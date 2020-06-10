@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, UserEditForm, LoginForm, MessageForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -92,20 +92,20 @@ def signup():
 @app.route('/login', methods=["GET", "POST"])
 def login():
     """Handle user login."""
-
+    
     form = LoginForm()
-
+    
     if form.validate_on_submit():
         user = User.authenticate(form.username.data,
                                  form.password.data)
-
+        
         if user:
             do_login(user)
             flash(f"Hello, {user.username}!", "success")
             return redirect("/")
 
         flash("Invalid credentials.", 'danger')
-
+    
     return render_template('users/login.html', form=form)
 
 
@@ -113,7 +113,11 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS
+    do_logout()
+    # todo: fix alert styling supposed to be displayed on login page upon successful logout
+    flash("Logged out!", 'alert')
+    return redirect('/login')
+
 
 
 ##############################################################################
@@ -210,8 +214,30 @@ def stop_following(follow_id):
 @app.route('/users/profile', methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
-
-    # IMPLEMENT THIS
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    else:
+        form = UserEditForm(obj=g.user)
+        user = User.query.get(g.user.id)
+        if form.validate_on_submit():
+            if User.authenticate(user.username, form.password.data):
+                edit_attrs = {
+                'email': form.email.data,
+                'username': form.username.data,
+                'image_url': form.image_url.data,
+                'header_image_url': form.header_image_url.data,
+                'bio': form.bio.data,
+                }
+                g.user.edit_profile(**edit_attrs)
+                db.session.commit()
+                flash("Profile edited!", "success")
+                return redirect(f'/users/{user.id}')
+            else: 
+                flash("Invalid password", "danger")
+                return redirect('/')  
+        else:
+            return render_template('users/edit.html', form=form, user=g.user)  
 
 
 @app.route('/users/delete', methods=["POST"])
