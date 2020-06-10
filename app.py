@@ -115,7 +115,7 @@ def logout():
 
     do_logout()
     # todo: fix alert styling supposed to be displayed on login page upon successful logout
-    flash("Logged out!", 'alert')
+    flash("Logged out!", 'success')
     return redirect('/login')
 
 
