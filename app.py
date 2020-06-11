@@ -5,8 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, UserEditForm, LoginForm, MessageForm
-from models import db, connect_db, User, Message
-
+from models import db, connect_db, User, Message, Likes
 CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
@@ -180,6 +179,21 @@ def users_followers(user_id):
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Show list of liked messages of this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+
+    liked_messages = user.likes
+
+    return render_template('users/likes.html', user=user, likes=liked_messages)
+
+
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
 def add_follow(follow_id):
@@ -225,8 +239,8 @@ def profile():
                 edit_attrs = {
                 'email': form.email.data,
                 'username': form.username.data,
-                'image_url': form.image_url.data,
-                'header_image_url': form.header_image_url.data,
+                'image_url': form.image_url.data or User.image_url.default.arg,
+                'header_image_url': form.header_image_url.data or User.header_image_url.default.arg,
                 'bio': form.bio.data,
                 }
                 g.user.edit_profile(**edit_attrs)
@@ -255,6 +269,31 @@ def delete_user():
 
     return redirect("/signup")
 
+
+@app.route('/messages/<int:message_id>/like', methods=["POST"])
+def like_message(message_id):
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    message = Message.query.get_or_404(message_id)
+    likes_list = g.user.likes
+
+    if message.user_id != g.user.id:
+        if message not in likes_list:
+            g.user.likes.append(message)
+            db.session.commit()
+            return redirect('/')
+
+        else:
+            g.user.likes.remove(message)
+            db.session.commit()
+            return redirect('/')
+    else:
+        
+        return redirect('/')
+    
 
 ##############################################################################
 # Messages routes:
@@ -318,13 +357,18 @@ def homepage():
     """
 
     if g.user:
-        messages = (Message
-                    .query
-                    .order_by(Message.timestamp.desc())
-                    .limit(100)
-                    .all())
 
-        return render_template('home.html', messages=messages)
+        following_list = [g.user.id] + [following.id for following in g.user.following]
+        messages = (Message
+                .query
+                .filter(Message.user_id.in_(following_list))
+                .order_by(Message.timestamp.desc())
+                .limit(100)
+                .all())
+
+        likes = [like.id for like in g.user.likes]
+
+        return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
