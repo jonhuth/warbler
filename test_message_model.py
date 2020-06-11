@@ -67,7 +67,7 @@ class MessageModelTestCase(TestCase):
         )
 
         test_message = Message(text="This is a test message.", user_id=1)
-        test_message_2 = Message(text="Did I liked this message?", user_id=1)
+        test_message_2 = Message(text="Did I like this message?", user_id=1)
 
         db.session.add_all([u1, test_message, test_message_2])
         u1.likes.append(test_message)

@@ -42,6 +42,8 @@ class UserModelViewCase(TestCase):
 
     def test_show_user_loggedin(self):
         with app.test_client() as client:
+            with client.session_transaction() as session:
+                session['CURR_USER_KEY'] = 1
 
             u1 = User(**USER_DATA_1)
             db.session.add(u1)
@@ -51,10 +53,78 @@ class UserModelViewCase(TestCase):
             response = client.get("/users/1")
 
             self.assertEqual(response.status_code, 200)
+            self.assertEqual(session['CURR_USER_KEY'], 1)
+            # self.assertIn(response, )
+
+    def test_add_message(self):
+        with app.test_client() as client:
+            with client.session_transaction() as session:
+                session['CURR_USER_KEY'] = 1
+
+            u1 = User(**USER_DATA_1)
+            db.session.add(u1)
+            db.session.commit()
+            self.u1 = u1
+
+            response = client.post("/messages/new", data={"text":"This is a test message.", "user_id":"1"})
+            html = response.get_data(as_text=True)
+
+            self.assertEqual(len(u1.messages), 0)
+
 
     def test_show_user_loggedout(self):
         with app.test_client() as client:
+            with client.session_transaction() as session:
+                session['CURR_USER_KEY'] = None
 
-            response = client.get("/users/1")
+            u1 = User(**USER_DATA_1)
+            db.session.add(u1)
+            db.session.commit()
+            self.u1 = u1
 
-            self.assertEqual(response.status_code, 404)
+            response = client.get("/messages/new")
+
+            self.assertEqual(response.status_code, 302)
+            # assert in the redirect page , some html part
+
+            test_message = Message(text="This is a test message.", user_id=u1.id)
+            u1.messages.append(test_message)
+
+            self.assertEqual(len(u1.messages), 1)
+
+
+    def test_delete_message_loggedin(self):
+        with app.test_client() as client:
+            with client.session_transaction() as session:
+                session['CURR_USER_KEY'] = 1
+
+            u1 = User(**USER_DATA_1)
+            db.session.add(u1)
+            db.session.commit()
+            self.u1 = u1
+
+            test_message = Message(text="This is a test message.", user_id=u1.id)
+            u1.messages.append(test_message)
+            db.session.commit()
+
+            response = client.post(f'/messages/{test_message.id}/delete', follow_redirects=True)
+
+            db.session.delete(test_message)
+            db.session.commit()
+
+            self.assertEqual(response.status_code, 200)
+
+    # def test_delete_message_loggedout(self):
+    #     with app.test_client() as client:
+    #         with client.session_transaction() as session:
+    #             session['CURR_USER_KEY'] = None
+
+    #         u1 = User(**USER_DATA_1)
+    #         db.session.add(u1)
+    #         db.session.commit()
+    #         self.u1 = u1
+
+    #         response = client.get("/logout")
+
+    #         self.assertEqual(response.status_code, 302)
+
