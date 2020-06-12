@@ -101,20 +101,20 @@ def signup():
 @app.route('/login', methods=["GET", "POST"])
 def login():
     """Handle user login."""
-    
+
     form = LoginForm()
-    
+
     if form.validate_on_submit():
         user = User.authenticate(form.username.data,
                                  form.password.data)
-        
+
         if user:
             do_login(user)
             flash(f"Hello, {user.username}!", "success")
             return redirect(url_for('homepage'))
 
         flash("Invalid credentials.", 'danger')
-    
+
     return render_template('users/login.html', form=form)
 
 
@@ -128,7 +128,6 @@ def logout():
     return redirect(url_for('login'))
 
 
-
 ##############################################################################
 # General user routes:
 
@@ -136,6 +135,7 @@ def logout():
 def page_not_found(e):
     # note that we set the 404 status explicitly
     return render_template('404.html'), 404
+
 
 @app.route('/users')
 def list_users():
@@ -188,6 +188,7 @@ def users_followers(user_id):
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
+
 @app.route('/users/<int:user_id>/likes')
 @login_required
 def show_likes(user_id):
@@ -198,7 +199,6 @@ def show_likes(user_id):
     liked_messages = user.likes
 
     return render_template('users/likes.html', user=user, likes=liked_messages)
-
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -235,21 +235,21 @@ def profile():
     if form.validate_on_submit():
         if User.authenticate(user.username, form.password.data):
             edit_attrs = {
-            'email': form.email.data,
-            'username': form.username.data,
-            'image_url': form.image_url.data or User.image_url.default.arg,
-            'header_image_url': form.header_image_url.data or User.header_image_url.default.arg,
-            'bio': form.bio.data,
+                'email': form.email.data,
+                'username': form.username.data,
+                'image_url': form.image_url.data or User.image_url.default.arg,
+                'header_image_url': form.header_image_url.data or User.header_image_url.default.arg,
+                'bio': form.bio.data,
             }
             g.user.edit_profile(**edit_attrs)
             db.session.commit()
             flash("Profile edited!", "success")
             return redirect(url_for('users_show', user_id=user.id))
-        else: 
+        else:
             flash("Invalid password", "danger")
-            return redirect(url_for('homepage'))  
+            return redirect(url_for('homepage'))
     else:
-        return render_template('users/edit.html', form=form, user=g.user)  
+        return render_template('users/edit.html', form=form, user=g.user)
 
 
 @app.route('/users/delete', methods=["POST"])
@@ -283,9 +283,9 @@ def like_message(message_id):
             db.session.commit()
             return redirect(url_for('homepage'))
     else:
-        
+
         return redirect(url_for('homepage'))
-    
+
 
 ##############################################################################
 # Messages routes:
@@ -344,13 +344,14 @@ def homepage():
 
     if g.user:
 
-        following_list = [g.user.id] + [following.id for following in g.user.following]
+        following_list = [g.user.id] + \
+            [following.id for following in g.user.following]
         messages = (Message
-                .query
-                .filter(Message.user_id.in_(following_list))
-                .order_by(Message.timestamp.desc())
-                .limit(100)
-                .all())
+                    .query
+                    .filter(Message.user_id.in_(following_list))
+                    .order_by(Message.timestamp.desc())
+                    .limit(100)
+                    .all())
 
         likes = [like.id for like in g.user.likes]
 
