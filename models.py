@@ -140,6 +140,13 @@ class User(db.Model):
 
         return self
 
+    def change_password(self, new_password, new_password_confirmed):
+
+        if new_password == new_password_confirmed:
+
+            hashed_pwd = bcrypt.generate_password_hash(new_password).decode('UTF-8')
+            self.password = hashed_pwd
+            return self
 
 
     @classmethod

@@ -34,3 +34,10 @@ class LoginForm(FlaskForm):
 
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[Length(min=6)])
+
+class ChangePasswordForm(FlaskForm):
+    """Form for changing password."""
+
+    current_password = PasswordField('Current Password', validators=[Length(min=6)])
+    new_password = PasswordField('New Password', validators=[Length(min=6)])
+    new_password_confirmed = PasswordField('Confirm New Password', validators=[Length(min=6)])

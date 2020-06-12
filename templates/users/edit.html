@@ -28,6 +28,8 @@
         <div class="edit-btn-area">
           <button class="btn btn-success">Edit this user!</button>
           <a href="{{ url_for('users_show', user_id=user.id) }}" class="btn btn-outline-secondary">Cancel</a>
+
+          <a href="{{ url_for('change_password') }}" class="btn btn-info">Change Password</a>
         </div>
       </form>
     </div>
